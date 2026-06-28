@@ -15,6 +15,15 @@
     "shtc": "cli.js"
   },
   "main": "cli.js",
+  "scripts": {
+    "build": "node cli.js build",
+    "serve": "node cli.js serve",
+    "init": "node cli.js init",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node cli.js serve",
+    "lint": "echo \"No linting configured\"",
+    "prepublishOnly": "npm test && npm run lint"
+  },
   "exports": {
     ".": {
       "import": "./cli.js",
