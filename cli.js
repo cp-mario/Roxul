@@ -27,7 +27,7 @@ import {
 } from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { findConfig } from './cfgParser.js';
+import { findConfig } from './src/scripts/cfgParser.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Package paths
@@ -633,7 +633,7 @@ function printHelp() {
  * CLI entry point. Parses process.argv and dispatches the command.
  * @param {string[]} argv - Typically process.argv
  */
-export function cli(argv) {
+function cli(argv) {
     const args = argv.slice(2);
 
     // ── Help / Version ───────────────────────────────────────────────────────
@@ -707,3 +707,7 @@ function parseServeOptions(args) {
     }
     return opts;
 }
+
+
+
+cli(process.argv);

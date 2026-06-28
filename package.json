@@ -12,21 +12,22 @@
   "author": "mariocp",
   "type": "module",
   "bin": {
-    "shtc": "./bin/shtc.js"
+    "shtc": "cli.js"
   },
-  "main": "./core/index.js",
+  "main": "cli.js",
   "exports": {
     ".": {
-      "import": "./core/index.js",
-      "default": "./core/index.js"
+      "import": "./cli.js",
+      "default": "./cli.js"
     }
   },
   "files": [
-    "bin/",
-    "core/",
-    "SHTC/BIComponents/",
+    "cli.js",
+    "src/",
+    ".gitignore",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "icon.svg"
   ],
   "engines": {
     "node": ">=18.0.0",
@@ -34,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/cp-mario/SHTC"
   },
-  "homepage": ""
+  "homepage": "https://github.com/cp-mario/SHTC"
 }
