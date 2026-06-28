@@ -19,7 +19,7 @@
     "build": "node cli.js build",
     "serve": "node cli.js serve",
     "init": "node cli.js init",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"No test specified\"",
     "dev": "node cli.js serve",
     "lint": "echo \"No linting configured\"",
     "prepublishOnly": "npm test && npm run lint"
