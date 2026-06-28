@@ -35,7 +35,7 @@ import { findConfig } from './src/scripts/cfgParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname   = dirname(__filename);
-export const PACKAGE_ROOT = resolve(__dirname, '..');
+export const PACKAGE_ROOT = __dirname;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Constants
