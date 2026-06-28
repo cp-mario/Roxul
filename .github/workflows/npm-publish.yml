@@ -43,6 +43,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Clear auth token for OIDC
+        run: echo "NODE_AUTH_TOKEN=" >> $GITHUB_ENV
       
 
       - name: Publish to npm using OIDC
@@ -110,6 +113,9 @@ jobs:
       
       - name: Build package
         run: npm run build
+
+      - name: Clear auth token for OIDC
+        run: echo "NODE_AUTH_TOKEN=" >> $GITHUB_ENV
       
       - name: Publish experimental version using OIDC
         run: npm publish --access public --tag experimental --provenance
