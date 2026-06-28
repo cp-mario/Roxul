@@ -94,29 +94,58 @@ jobs:
       - name: Install dependencies
         run: npm install
       
-      - name: Get current commit info and latest npm version
+      - name: Get current commit info and versions from npm
         id: commit_info
         run: |
           COMMIT_COUNT=$(git rev-list --count HEAD)
           COMMIT_DATE=$(date -u +%Y-%m-%d-%H-%M-%S)
-          # Get latest version from npm registry
-          LATEST_VERSION=$(npm view @mariocp/shtc version 2>/dev/null || echo "0.0.0")
+          
+          # Get latest official version from npm (tag=latest)
+          OFFICIAL_VERSION=$(npm view @mariocp/shtc@latest version 2>/dev/null || echo "0.0.0")
+          echo "latest_version=$OFFICIAL_VERSION" >> $GITHUB_OUTPUT
+          
+          # Get latest experimental version from npm (tag=experimental)
+          EXPERIMENTAL_VERSION=$(npm view @mariocp/shtc@experimental version 2>/dev/null || echo "none")
+          echo "experimental_version=$EXPERIMENTAL_VERSION" >> $GITHUB_OUTPUT
+          
           echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
           echo "commit_date=$COMMIT_DATE" >> $GITHUB_OUTPUT
-          echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "Latest version from npm: $LATEST_VERSION"
+          echo "Official (latest): $OFFICIAL_VERSION"
+          echo "Experimental: $EXPERIMENTAL_VERSION"
       
-      - name: Calculate experimental version (latest npm + patch increment)
+      - name: Calculate experimental version (smart increment)
         id: exp_version
         run: |
-          LATEST_VERSION="${{ steps.commit_info.outputs.latest_version }}"
-          # Parse major.minor.patch from latest version
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_VERSION"
-          # Experimental version = latest version with patch + 1
-          EXPERIMENTAL_PATCH=$((PATCH + 1))
-          EXPERIMENTAL_VERSION="${MAJOR}.${MINOR}.${EXPERIMENTAL_PATCH}"
-          echo "experimental_version=$EXPERIMENTAL_VERSION" >> $GITHUB_OUTPUT
-          echo "Calculated experimental version: $EXPERIMENTAL_VERSION (from npm latest: $LATEST_VERSION)"
+          OFFICIAL_VERSION="${{ steps.commit_info.outputs.latest_version }}"
+          EXPERIMENTAL_VERSION="${{ steps.commit_info.outputs.experimental_version }}"
+          
+          # Parse official major.minor
+          IFS='.' read -r OFF_MAJOR OFF_MINOR OFF_PATCH <<< "$OFFICIAL_VERSION"
+          OFFICIAL_BASE="${OFF_MAJOR}.${OFF_MINOR}"
+          
+          # Determine experimental version
+          if [[ "$EXPERIMENTAL_VERSION" != "none" ]]; then
+            IFS='.' read -r EXP_MAJOR EXP_MINOR EXP_PATCH <<< "$EXPERIMENTAL_VERSION"
+            EXPERIMENTAL_BASE="${EXP_MAJOR}.${EXP_MINOR}"
+            
+            if [[ "$EXPERIMENTAL_BASE" == "$OFFICIAL_BASE" ]]; then
+              # Same major.minor → increment patch
+              NEW_PATCH=$((EXP_PATCH + 1))
+              FINAL_VERSION="${OFFICIAL_BASE}.${NEW_PATCH}"
+              echo "Experimental matches official base ($OFFICIAL_BASE) → incrementing patch: $FINAL_VERSION"
+            else
+              # Different major.minor → start at .1
+              FINAL_VERSION="${OFFICIAL_BASE}.1"
+              echo "Experimental base ($EXPERIMENTAL_BASE) != official base ($OFFICIAL_BASE) → starting at: $FINAL_VERSION"
+            fi
+          else
+            # No experimental exists → start at .1
+            FINAL_VERSION="${OFFICIAL_BASE}.1"
+            echo "No experimental version found → starting at: $FINAL_VERSION"
+          fi
+          
+          echo "experimental_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated experimental version: $FINAL_VERSION"
       
       - name: Update package.json for experimental version
         run: |
@@ -139,6 +168,8 @@ jobs:
       - name: Output experimental reference
         run: |
           echo "Experimental version published: ${{ steps.exp_version.outputs.experimental_version }}"
+          echo "Based on official: ${{ steps.commit_info.outputs.latest_version }}"
+          echo "Previous experimental: ${{ steps.commit_info.outputs.experimental_version }}"
           echo "Commit SHA: ${{ github.sha }}"
           echo "Commit short: ${{ github.sha_short }}"
           echo "Install with: npm install @mariocp/shtc@experimental"
