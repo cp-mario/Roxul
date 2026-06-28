@@ -1,20 +1,20 @@
 /**
- * SHTC — Simple Hyper Text Components
+ * roxul
  * =============================
  * 
  * Core module.
  * Provides the build engine, CLI, dev server, and project scaffolding.
  * 
  * Usage (CLI):
- *   shtc build        Build the project
- *   shtc serve        Start dev server with auto-rebuild
- *   shtc dev          Alias for serve
- *   shtc init         Scaffold a new project
- *   shtc --help       Show help
- *   shtc --version    Show version
+ *   roxul build        Build the project
+ *   roxul serve        Start dev server with auto-rebuild
+ *   roxul dev          Alias for serve
+ *   roxul init         Scaffold a new project
+ *   roxul --help       Show help
+ *   roxul --version    Show version
  * 
  * Usage (programmatic):
- *   import { build, serve, initProject } from 'shtc';
+ *   import { build, serve, initProject } from 'roxul';
  *   await build({ input: 'src', output: 'dist' });
  */
 
@@ -103,7 +103,7 @@ function loadConfig(projectRoot) {
  * Resolve a component src attribute to the first existing file.
  *
  * Prefix rules:
- *   No prefix  →  components/<path>  →  SHTC/BIComponents/<path>  →  <PACKAGE>/SHTC/BIComponents/<path>
+ *   No prefix  →  components/<path>  →  roxul/BIComponents/<path>  →  <PACKAGE>/roxul/BIComponents/<path>
  *   # prefix   →  src/<path>
  *   % prefix   →  <path>  (project root)
  *
@@ -126,11 +126,11 @@ function resolveComponentPath(src, projectRoot) {
         // 1) User's components/
         const userBase = join(projectRoot, 'components', src);
         for (const ext of COMPONENT_EXTENSIONS) searchLocations.push(userBase + ext);
-        // 2) User's SHTC/BIComponents/ (local override)
-        const localBiBase = join(projectRoot, 'SHTC', 'BIComponents', src);
+        // 2) User's roxul/BIComponents/ (local override)
+        const localBiBase = join(projectRoot, 'roxul', 'BIComponents', src);
         for (const ext of COMPONENT_EXTENSIONS) searchLocations.push(localBiBase + ext);
-        // 3) Package SHTC/BIComponents/ (built-ins shipped with shtc)
-        const pkgBiBase = join(PACKAGE_ROOT, 'SHTC', 'BIComponents', src);
+        // 3) Package roxul/BIComponents/ (built-ins shipped with roxul)
+        const pkgBiBase = join(PACKAGE_ROOT, 'roxul', 'BIComponents', src);
         for (const ext of COMPONENT_EXTENSIONS) searchLocations.push(pkgBiBase + ext);
     }
 
@@ -202,7 +202,7 @@ function processHtml(html, projectRoot, depth = 0, log = null) {
     const logger = log || console;
 
     if (depth > MAX_COMPONENT_DEPTH) {
-        logger.warn(`[SHTC] Max depth (${MAX_COMPONENT_DEPTH}) reached — possible circular reference.`);
+        logger.warn(`[roxul] Max depth (${MAX_COMPONENT_DEPTH}) reached — possible circular reference.`);
         return html;
     }
 
@@ -215,8 +215,8 @@ function processHtml(html, projectRoot, depth = 0, log = null) {
         const resolved = resolveComponentPath(src, projectRoot);
 
         if (!resolved.path) {
-            logger.warn(`[SHTC] Component not found: src="${src}"`);
-            const comment = `\n<!-- SHTC: component not found "${src}" -->\n`;
+            logger.warn(`[roxul] Component not found: src="${src}"`);
+            const comment = `\n<!-- roxul: component not found "${src}" -->\n`;
             result = result.slice(0, start) + comment + result.slice(end);
             continue;
         }
@@ -225,8 +225,8 @@ function processHtml(html, projectRoot, depth = 0, log = null) {
         try {
             content = readFileSync(resolved.path, 'utf-8');
         } catch (err) {
-            logger.warn(`[SHTC] Error reading component "${src}": ${err.message}`);
-            const comment = `\n<!-- SHTC: error reading component "${src}" -->\n`;
+            logger.warn(`[roxul] Error reading component "${src}": ${err.message}`);
+            const comment = `\n<!-- roxul: error reading component "${src}" -->\n`;
             result = result.slice(0, start) + comment + result.slice(end);
             continue;
         }
@@ -295,7 +295,7 @@ function processDirectory(rootDir, currentDir, outputDir, projectRoot, log) {
     try {
         entries = readdirSync(currentDir, { withFileTypes: true });
     } catch (err) {
-        log.warn(`[SHTC] Error reading directory "${currentDir}": ${err.message}`);
+        log.warn(`[roxul] Error reading directory "${currentDir}": ${err.message}`);
         return;
     }
 
@@ -316,7 +316,7 @@ function processDirectory(rootDir, currentDir, outputDir, projectRoot, log) {
                 if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
                 writeFileSync(outputPath, processed, 'utf-8');
             } catch (err) {
-                log.warn(`[SHTC] Error processing "${relativePath}": ${err.message}`);
+                log.warn(`[roxul] Error processing "${relativePath}": ${err.message}`);
             }
         } else if (entry.isFile()) {
             const outDir = dirname(outputPath);
@@ -331,7 +331,7 @@ function processDirectory(rootDir, currentDir, outputDir, projectRoot, log) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Run a full SHTC build.
+ * Run a full roxul build.
  *
  * @param {object}  [opts]
  * @param {string}  [opts.input]    - Input directory (default: 'src' or from config)
@@ -352,7 +352,7 @@ export async function build(opts = {}) {
     // ── Header ───────────────────────────────────────────────────────────────
     log.info('');
     log.info('  ╔══════════════════════════════════════╗');
-    log.info('  ║   SHTC — Simple Hyper Text Components║');
+    log.info('  ║   roxul                              ║');
     log.info('  ║   Static site generator (build-time) ║');
     log.info('  ╚══════════════════════════════════════╝');
     log.info('');
@@ -363,7 +363,7 @@ export async function build(opts = {}) {
 
     // ── Validate ─────────────────────────────────────────────────────────────
     if (!existsSync(inputDir)) {
-        log.warn(`[SHTC] Input directory does not exist: ${inputDir}`);
+        log.warn(`[roxul] Input directory does not exist: ${inputDir}`);
         log.warn('       Create it or change "input" in config.cfg');
         return { inputDir, outputDir };
     }
@@ -441,7 +441,7 @@ export async function serve(opts = {}) {
     // ── Initial build ────────────────────────────────────────────────────────
     log.info('');
     log.info('  ╔══════════════════════════════════════╗');
-    log.info('  ║   SHTC — Dev Server                    ║');
+    log.info('  ║   roxul — Dev Server                 ║');
     log.info('  ╚══════════════════════════════════════╝');
     log.info('');
 
@@ -490,7 +490,7 @@ export async function serve(opts = {}) {
     // ── HTTP server ──────────────────────────────────────────────────────────
     const server = createServer(async (req, res) => {
         // SSE endpoint for live reload
-        if (req.url === '/__shtc_livereload') {
+        if (req.url === '/__roxul_livereload') {
             res.writeHead(200, {
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache',
@@ -518,7 +518,7 @@ export async function serve(opts = {}) {
                 if (mime.startsWith('text/html')) {
                     const liveReloadScript = `<script>
 (function(){
-    var es = new EventSource('/__shtc_livereload');
+    var es = new EventSource('/__roxul_livereload');
     es.addEventListener('message', function(e){
         if(e.data === 'reload') location.reload();
     });
@@ -562,7 +562,7 @@ export async function serve(opts = {}) {
 
 
 /**
- * Scaffold a new SHTC project in the given directory.
+ * Scaffold a new roxul project in the given directory.
  *
  * @param {string} dir     - Target directory (default: process.cwd())
  * @param {object} [opts]
@@ -576,7 +576,7 @@ export function initProject(dir, opts = {}) {
 
     log.info('');
     log.info('  ╔══════════════════════════════════════╗');
-    log.info('  ║   SHTC — Init Project                ║');
+    log.info('  ║   roxul — Init Project               ║');
     log.info('  ╚══════════════════════════════════════╝');
     log.info('');
     log.info(`  Scaffolding project in: ${targetDir}`);
@@ -606,8 +606,8 @@ export function initProject(dir, opts = {}) {
     log.info(`  Created ${created} file(s)` + (skipped > 0 ? ` (${skipped} skipped)` : ''));
     log.info('');
     log.info('  Next steps:');
-    log.info('    1. Run  shtc build to build the project');
-    log.info('    2. Run  shtc serve to start the dev server');
+    log.info('    1. Run  roxul build to build the project');
+    log.info('    2. Run  roxul serve to start the dev server');
     log.info('    3. Edit files in  src/ and components/');
     log.info('');
 }
@@ -618,16 +618,16 @@ export function initProject(dir, opts = {}) {
 
 function printHelp() {
     console.log(`
-  SHTC — Simple Hyper Text Components  v${PKG_VERSION}
+  roxul v${PKG_VERSION}
 
   Usage:
-    shtc <command> [options]
+    roxul <command> [options]
 
   Commands:
     build             Build the project
     serve             Start dev server with live reload
     dev               Alias for serve
-    init [directory]  Scaffold a new SHTC project (The directory is optional, if its blank it will use the terminal location)
+    init [directory]  Scaffold a new roxul project (The directory is optional, if its blank it will use the terminal location)
 
   Options:
     -h, --help        Show this help message (default)
@@ -640,10 +640,10 @@ function printHelp() {
     --force           Overwrite files on init
 
   Examples:
-    shtc build
-    shtc serve --port 8080
-    shtc init my-project
-    shtc --help
+    roxul build
+    roxul serve --port 8080
+    roxul init my-project
+    roxul --help
 `);
 }
 
@@ -673,7 +673,7 @@ function cli(argv) {
 
     if (args[0] === 'build') {
         const opts = parseBuildOptions(args.slice(1));
-        build(opts).catch(err => console.error(`[SHTC] Error: ${err.message}`));
+        build(opts).catch(err => console.error(`[roxul] Error: ${err.message}`));
         return;
     }
 
@@ -682,7 +682,7 @@ function cli(argv) {
 
     if (cmd === 'serve' || cmd === 'dev') {
         const opts = parseServeOptions(args.slice(1));
-        serve(opts).catch(err => console.error(`[SHTC] Error: ${err.message}`));
+        serve(opts).catch(err => console.error(`[roxul] Error: ${err.message}`));
         return;
     }
 

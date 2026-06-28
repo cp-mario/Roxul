@@ -1,6 +1,6 @@
-# SHTC — Simple Hyper Text Components
+# Roxul
 
-> **SHTC (Simple Hyper Text Components)** is a lightweight static site generator.  
+> **roxul** is a lightweight static site generator.  
 > Tired of rewriting vanilla HTML, CSS, or JS every time you dynamically insert content — only to deal with **flickering**?  
 > **This is the solution.**
 
@@ -11,11 +11,11 @@ Components are resolved at **build time** — the output is plain HTML with zero
 ## Install
 
 ```bash
-npm install -g shtc
+npm install -g roxul
 # or
-pnpm add -g shtc
+pnpm add -g roxul
 # or use directly with npx
-npx shtc build
+npx roxul build
 ```
 
 ---
@@ -23,17 +23,17 @@ npx shtc build
 ## CLI Usage
 
 ```
-shtc <command> [options]
+roxul <command> [options]
 ```
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `shtc build`         | Build the project (default command) |
-| `shtc serve`         | Start dev server with live reload |
-| `shtc dev`           | Alias for `serve` |
-| `shtc init [dir]`    | Scaffold a new SHTC project |
+| `roxul build`         | Build the project (default command) |
+| `roxul serve`         | Start dev server with live reload |
+| `roxul dev`           | Alias for `serve` |
+| `roxul init [dir]`    | Scaffold a new roxul project |
 
 ### Options
 
@@ -52,16 +52,16 @@ shtc <command> [options]
 
 ```bash
 # Build the project
-shtc build
+roxul build
 
 # Start dev server on port 8080
-shtc serve --port 8080
+roxul serve --port 8080
 
 # Scaffold a new project
-shtc init my-project
+roxul init my-project
 
 # Custom directories
-shtc build --input src --output dist
+roxul build --input src --output dist
 ```
 
 ---
@@ -78,8 +78,8 @@ my-project/
 │   ├── main.js
 │   └── main.css
 ├── output/            ← Build output (generated)
-├── config.cfg         ← SHTC configuration
-└── package.json       ← Your project (add "shtc" as dependency)
+├── config.cfg         ← roxul configuration
+└── package.json       ← Your project (add "roxul" as dependency)
 ```
 
 ---
@@ -92,7 +92,7 @@ Place a `<component>` tag in your HTML:
 <component src="example/hello" />
 ```
 
-At build time, SHTC resolves the tag and inlines the component content:
+At build time, roxul resolves the tag and inlines the component content:
 
 ```html
 <!-- Before (source) -->
@@ -112,18 +112,18 @@ At build time, SHTC resolves the tag and inlines the component content:
 
 | Prefix | Path Resolution | Use Case |
 |--------|----------------|----------|
-| `src="route/to/comp"` | `components/route/to/comp` → `SHTC/BIComponents/route/to/comp` | Standard & built-in components |
+| `src="route/to/comp"` | `components/route/to/comp` → `roxul/BIComponents/route/to/comp` | Standard & built-in components |
 | `src="#route/to/comp"` | `src/route/to/comp` | Referencing a page as component |
 | `src="%route/to/comp"` | `route/to/comp` (project root) | Absolute project path |
 
-Built-in components (shipped with SHTC) are resolved from the package's `SHTC/BIComponents/` directory as a final fallback.
+Built-in components (shipped with roxul) are resolved from the package's `roxul/BIComponents/` directory as a final fallback.
 
 ---
 
 ## Programmatic API
 
 ```javascript
-import { build, serve, initProject } from 'shtc';
+import { build, serve, initProject } from 'roxul';
 
 // Build programmatically
 await build({ input: 'src', output: 'dist', root: process.cwd() });

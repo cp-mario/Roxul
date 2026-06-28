@@ -1,7 +1,7 @@
 /**
- * cfgParser.js — SHTC Config Parser
+ * cfgParser.js — roxul Config Parser
  * 
- * Parses the SHTC configuration file (config.cfg).
+ * Parses the roxul configuration file (config.cfg).
  * Works with both Node.js and Bun.
  * 
  * Format:
@@ -72,8 +72,8 @@ export function readConfigSync(configPath) {
 export function findConfig(projectRoot) {
     const candidates = [
         join(projectRoot, 'config.cfg'),
-        join(projectRoot, 'shtc.config.cfg'),
-        join(projectRoot, 'shtc.config.json'),
+        join(projectRoot, 'roxul.config.cfg'),
+        join(projectRoot, 'roxul.config.json'),
     ];
 
     for (const cfgPath of candidates) {
