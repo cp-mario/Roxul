@@ -49,6 +49,32 @@ const PKG_VERSION           = (() => {
         return JSON.parse(pkg).version || '0.0.0';
     } catch { return '0.0.0'; }
 })();
+// Helper to load init templates from the defaultProject folder
+function getInitTemplates() {
+    const templateRoot = join(PACKAGE_ROOT, 'src', 'defaultProject');
+    const templates = {};
+
+    function walk(dir) {
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(fullPath);
+            } else if (entry.isFile()) {
+                // Compute relative path inside defaultProject
+                const relPath = relative(templateRoot, fullPath).replace(/\\/g, '/');
+                // Preserve directory structure as in the template folder
+                const content = readFileSync(fullPath, 'utf-8');
+                templates[relPath] = content;
+            }
+        }
+    }
+
+    if (existsSync(templateRoot)) {
+        walk(templateRoot);
+    }
+    return templates;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Config loading
@@ -206,7 +232,48 @@ function processHtml(html, projectRoot, depth = 0, log = null) {
         }
 
         content = processHtml(content, projectRoot, depth + 1, logger);
-        result = result.slice(0, start) + content + result.slice(end);
+        // Preserve original indentation of the <component> tag and prepend it to each line of the inserted content.
+        // Determine the whitespace (tabs/spaces) that appears before the tag on its line.
+        let lineStart = result.lastIndexOf('\n', start - 1);
+        let baseIndent = '';
+        if (lineStart !== -1) {
+            const beforeTag = result.slice(lineStart + 1, start);
+            const match = beforeTag.match(/^[ \t]*/);
+            baseIndent = match ? match[0] : '';
+        } else {
+            // Tag is at the very start of the file
+            const beforeTag = result.slice(0, start);
+            const match = beforeTag.match(/^[ \t]*/);
+            baseIndent = match ? match[0] : '';
+        }
+        // Remove common leading indentation from the component content to avoid double indentation on the first line.
+        const lines = content.split('\n');
+        // Determine minimal indentation (ignoring empty lines).
+        let minIndent = null;
+        for (const l of lines) {
+            if (l.trim() === '') continue;
+            const match = l.match(/^[ \t]*/);
+            const indent = match ? match[0].length : 0;
+            if (minIndent === null || indent < minIndent) minIndent = indent;
+        }
+        const dedentedLines = lines.map(l => {
+            if (minIndent && l.length >= minIndent) {
+                return l.slice(minIndent);
+            }
+            return l;
+        });
+        // Build the final content: first line without extra baseIndent, subsequent lines prefixed.
+        let indentedContent = '';
+        if (dedentedLines.length > 0) {
+            // First line stays as is (already has its own indentation).
+            indentedContent = dedentedLines[0];
+            // Remaining lines get the baseIndent added.
+            if (dedentedLines.length > 1) {
+                const rest = dedentedLines.slice(1).map(line => baseIndent + line).join('\n');
+                indentedContent += '\n' + rest;
+            }
+        }
+        result = result.slice(0, start) + indentedContent + result.slice(end);
 
         if (logger.info) {
             const indent = '  '.repeat(depth + 1);
@@ -493,56 +560,6 @@ export async function serve(opts = {}) {
 //  Init — scaffold a new project
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const INIT_TEMPLATES = {
-    'config.cfg': `# SHTC Configuration
-# https://github.com/yourusername/shtc
-
-input  = src
-output = output
-`,
-
-    'src/index.html': `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My SHTC Project</title>
-</head>
-<body>
-    <h1>Hello, SHTC!</h1>
-    <p>This page was built with Simple Hyper Text Components.</p>
-
-    <!-- Your components will be resolved here -->
-    <component src="example/hello" />
-
-    <script type="module" src="/main.js"></script>
-</body>
-</html>
-`,
-
-    'src/main.js': `// SHTC processes HTML at build time.
-// This JavaScript file is copied as-is to the output.
-console.log('Hello from SHTC!');
-`,
-
-    'src/main.css': `/* Your styles here */
-body {
-    font-family: system-ui, sans-serif;
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    line-height: 1.6;
-    color: #333;
-}
-`,
-
-    'components/example/hello.html': `<div style="background:#f0f7ff;border:1px solid #cce4ff;border-radius:8px;padding:1.5rem;margin:1rem 0;">
-    <h2>👋 Hello from a component!</h2>
-    <p>This content was injected at <strong>build time</strong> — no flickering!</p>
-    <p>Edit this file in <code>components/example/hello.html</code>.</p>
-</div>
-`,
-};
 
 /**
  * Scaffold a new SHTC project in the given directory.
@@ -559,7 +576,7 @@ export function initProject(dir, opts = {}) {
 
     log.info('');
     log.info('  ╔══════════════════════════════════════╗');
-    log.info('  ║   SHTC — Init Project                  ║');
+    log.info('  ║   SHTC — Init Project                ║');
     log.info('  ╚══════════════════════════════════════╝');
     log.info('');
     log.info(`  Scaffolding project in: ${targetDir}`);
@@ -568,7 +585,8 @@ export function initProject(dir, opts = {}) {
     let created = 0;
     let skipped = 0;
 
-    for (const [filePath, content] of Object.entries(INIT_TEMPLATES)) {
+    const templates = getInitTemplates();
+    for (const [filePath, content] of Object.entries(templates)) {
         const fullPath = join(targetDir, filePath);
         const dirPath  = dirname(fullPath);
 
@@ -588,9 +606,9 @@ export function initProject(dir, opts = {}) {
     log.info(`  Created ${created} file(s)` + (skipped > 0 ? ` (${skipped} skipped)` : ''));
     log.info('');
     log.info('  Next steps:');
-    log.info('    1. Run  shtc build   to build the project');
-    log.info('    2. Run  shtc serve   to start the dev server');
-    log.info('    3. Edit files in  src/  and  components/');
+    log.info('    1. Run  shtc build to build the project');
+    log.info('    2. Run  shtc serve to start the dev server');
+    log.info('    3. Edit files in  src/ and components/');
     log.info('');
 }
 
