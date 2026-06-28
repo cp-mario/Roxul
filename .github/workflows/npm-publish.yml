@@ -94,11 +94,11 @@ jobs:
           COMMIT_DATE=$(date -u +%Y-%m-%d-%H-%M-%S)
           
           # Get latest official version from npm (tag=latest)
-          OFFICIAL_VERSION=$(npm view @mariocp/roxul@latest version 2>/dev/null || echo "0.0.0")
+          OFFICIAL_VERSION=$(npm view roxul@latest version 2>/dev/null || echo "0.0.0")
           echo "latest_version=$OFFICIAL_VERSION" >> $GITHUB_OUTPUT
           
           # Get latest experimental version from npm (tag=experimental)
-          EXPERIMENTAL_VERSION=$(npm view @mariocp/roxul@experimental version 2>/dev/null || echo "none")
+          EXPERIMENTAL_VERSION=$(npm view roxul@experimental version 2>/dev/null || echo "none")
           echo "experimental_version=$EXPERIMENTAL_VERSION" >> $GITHUB_OUTPUT
           
           echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
