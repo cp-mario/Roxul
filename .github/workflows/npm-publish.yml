@@ -1,0 +1,163 @@
+name: Publish to npm with version tagging
+
+on:
+  # Trigger when tags are pushed (for official releases)
+  push:
+    tags:
+      - 'v*'
+  
+  # Trigger on commits for experimental versions
+  push:
+    branches:
+      - 'main'
+
+  # Manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  publish-official:
+    # Only run for official tag pushes
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Validate version tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Tag must be in format v1.2.3"
+            exit 1
+          fi
+          echo "Creating official release: $VERSION"
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release v${{ github.ref_name }}
+          body: |
+            ## Changes
+            
+            Full changelog available at:
+            https://github.com/cp-mario/SHTC/blob/${{ github.ref_name }}/CHANGELOG.md
+            
+            ### Automated Changes
+            - Built and published with GitHub Actions
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-experimental:
+    # Only run for commits to main branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Get current commit info
+        id: commit_info
+        run: |
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          COMMIT_DATE=$(date -u +%Y-%m-%d-%H-%M-%S)
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "commit_date=$COMMIT_DATE" >> $GITHUB_OUTPUT
+          echo "Creating experimental version: Experimental-$COMMIT_COUNT-$COMMIT_DATE"
+      
+      - name: Update package.json for experimental version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          EXPERIMENTAL_VERSION="0.0.$((${{ steps.commit_info.outputs.commit_count }} / 100))"
+          echo "Updated version from $CURRENT_VERSION to $EXPERIMENTAL_VERSION"
+          jq --arg version "$EXPERIMENTAL_VERSION" '.version = $version' package.json > package.json.tmp && mv package.json.tmp package.json
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Build package
+        run: npm run build
+      
+      - name: Publish experimental version
+        run: npm publish --access public --tag experimental
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create experimental release
+        uses: actions/create-release@v1
+        with:
+          tag_name: experimental-${{ steps.commit_info.outputs.commit_count }}-${{ steps.commit_info.outputs.commit_date }}
+          release_name: Experimental Version ${{ steps.commit_info.outputs.commit_count }}-${{ steps.commit_info.outputs.commit_date }}
+          body: |
+            ## Experimental Version
+            
+            This is an experimental build created automatically from commit #${{ steps.commit_info.outputs.commit_count }} on ${{ steps.commit_info.outputs.commit_date }}.
+            
+            ### Features
+            - Automatically generated experimental version
+            - Tag name: experimental-${{ steps.commit_info.outputs.commit_count }}-${{ steps.commit_info.outputs.commit_date }}
+            
+            ### Usage
+            Install with: `npm install shtc@experimental`
+            
+            ### Important Notes
+            - Experimental versions may contain bugs
+            - Not intended for production use
+            - Version will follow semantic versioning: 0.0.<commitcount/100>
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update experimental version in package.json
+        run: |
+          # Reset version to original
+          git checkout -- package.json
+      
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [publish-official, publish-experimental]
+    
+    steps:
+      - name: Cleanup workflow run logs
+        run: |
+          echo "Workflow completed successfully"
+          echo "Official releases created for tagged versions"
+          echo "Experimental versions created for each main branch commit"
