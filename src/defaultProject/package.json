@@ -1,0 +1,19 @@
+{
+  "name": "your-project-name",
+  "version": "0.0.0",
+  "description": "YOur project description",
+  "main": "index.js",
+  "scripts": {
+    "dev": "roxul dev",
+    "build": "roxul build",
+    "test": "echo \"Error: no test specified\""
+  },
+  "author": "your-name",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "roxul": "latest"
+  }
+}
