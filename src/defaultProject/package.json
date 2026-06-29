@@ -1,7 +1,7 @@
 {
   "name": "your-project-name",
   "version": "0.0.0",
-  "description": "YOur project description",
+  "description": "Your project description",
   "main": "index.js",
   "scripts": {
     "dev": "roxul dev",
