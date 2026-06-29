@@ -106,38 +106,35 @@ jobs:
           echo "Official (latest): $OFFICIAL_VERSION"
           echo "Experimental: $EXPERIMENTAL_VERSION"
       
-      - name: Calculate experimental version (smart increment)
+      - name: Calculate experimental version
         id: exp_version
         run: |
           OFFICIAL_VERSION="${{ steps.commit_info.outputs.latest_version }}"
           EXPERIMENTAL_VERSION="${{ steps.commit_info.outputs.experimental_version }}"
-          
-          # Parse official major.minor
-          IFS='.' read -r OFF_MAJOR OFF_MINOR OFF_PATCH <<< "$OFFICIAL_VERSION"
-          OFFICIAL_BASE="${OFF_MAJOR}.${OFF_MINOR}"
-          
-          # Determine experimental version
-          if [[ "$EXPERIMENTAL_VERSION" != "none" ]]; then
-            IFS='.' read -r EXP_MAJOR EXP_MINOR EXP_PATCH <<< "$EXPERIMENTAL_VERSION"
-            EXPERIMENTAL_BASE="${EXP_MAJOR}.${EXP_MINOR}"
-            
-            if [[ "$EXPERIMENTAL_BASE" == "$OFFICIAL_BASE" ]]; then
-              # Same major.minor → increment patch
-              NEW_PATCH=$((EXP_PATCH + 1))
-              FINAL_VERSION="${OFFICIAL_BASE}.${NEW_PATCH}"
-              echo "Experimental matches official base ($OFFICIAL_BASE) → incrementing patch: $FINAL_VERSION"
-            else
-              # Different major.minor → start at .1
-              FINAL_VERSION="${OFFICIAL_BASE}.1"
-              echo "Experimental base ($EXPERIMENTAL_BASE) != official base ($OFFICIAL_BASE) → starting at: $FINAL_VERSION"
-            fi
+
+          version_gt() {
+            [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" != "$1" ]
+          }
+
+          increment_patch() {
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$1"
+            echo "${MAJOR}.${MINOR}.$((PATCH + 1))"
+          }
+
+          if [[ "$EXPERIMENTAL_VERSION" == "none" ]]; then
+            FINAL_VERSION=$(increment_patch "$OFFICIAL_VERSION")
+            echo "No experimental version exists -> $FINAL_VERSION"
+
+          elif version_gt "$EXPERIMENTAL_VERSION" "$OFFICIAL_VERSION"; then
+            FINAL_VERSION=$(increment_patch "$EXPERIMENTAL_VERSION")
+            echo "Experimental is newer -> $FINAL_VERSION"
+
           else
-            # No experimental exists → start at .1
-            FINAL_VERSION="${OFFICIAL_BASE}.1"
-            echo "No experimental version found → starting at: $FINAL_VERSION"
+            FINAL_VERSION=$(increment_patch "$OFFICIAL_VERSION")
+            echo "Official is newer or equal -> $FINAL_VERSION"
           fi
-          
-          echo "experimental_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+
+          echo "experimental_version=$FINAL_VERSION" >> "$GITHUB_OUTPUT"
           echo "Calculated experimental version: $FINAL_VERSION"
       
       - name: Update package.json for experimental version
