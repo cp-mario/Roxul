@@ -108,6 +108,45 @@ At build time, roxul resolves the tag and inlines the component content:
 
 ---
 
+## Component Attributes (Placeholders)
+
+You can make your components dynamic by inserting **`%%variable%%`** placeholders anywhere in their HTML, and then passing values via attributes on the `<component>` tag.
+
+### Example
+
+Component file `components/greeting.html`:
+
+```html
+<div class="greeting">
+    <h1>%%title%%</h1>
+    <p>%%message%%</p>
+</div>
+```
+
+Usage in your page:
+
+```html
+<component src="greeting" title="Welcome!" message="This content was injected at build time." />
+```
+
+Output (built):
+
+```html
+<div class="greeting">
+    <h1>Welcome!</h1>
+    <p>This content was injected at build time.</p>
+</div>
+```
+
+### Behavior
+
+- If a `%%variable%%` has a matching attribute (e.g. `title="value"`), it is replaced with the attribute value.
+- If no matching attribute exists, the placeholder is left **unchanged** in the output.
+- Placeholders work with any attribute **except `src`**, which is reserved for component resolution.
+- Attribute names map directly to placeholder names: `alt-text="Logo"` → `%%alt-text%%`.
+
+---
+
 ## Source Paths Reference
 
 | Prefix | Path Resolution | Use Case |

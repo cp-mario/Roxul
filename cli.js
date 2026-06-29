@@ -169,6 +169,24 @@ function resolveComponentPath(src, projectRoot) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Parse all attributes from an attribute string into a key-value map.
+ * Handles double-quoted and single-quoted values.
+ * @param {string} attrString
+ * @returns {Object.<string, string>}
+ */
+function parseAttributes(attrString) {
+    const attrs = {};
+    const attrRegex = /(\S+)\s*=\s*"([^"]*)"|(\S+)\s*=\s*'([^']*)'/g;
+    let match;
+    while ((match = attrRegex.exec(attrString)) !== null) {
+        const name = match[1] !== undefined ? match[1] : match[3];
+        const value = match[2] !== undefined ? match[2] : match[4];
+        attrs[name] = value;
+    }
+    return attrs;
+}
+
+/**
  * Find all <component> tags in an HTML string.
  * Handles self-closing, explicit closing, and implicit closing forms.
  */
@@ -206,7 +224,7 @@ function findComponentTags(html) {
         }
 
         const src = srcMatch[1] !== undefined ? srcMatch[1] : srcMatch[2];
-        tags.push({ start: tagStart, end: tagEnd, src, fullTag: html.slice(tagStart, tagEnd) });
+        tags.push({ start: tagStart, end: tagEnd, src, fullTag: html.slice(tagStart, tagEnd), attrs: parseAttributes(attrString) });
         openTagRegex.lastIndex = tagEnd;
     }
     return tags;
@@ -252,6 +270,12 @@ function processHtml(html, projectRoot, depth = 0, log = null) {
             result = result.slice(0, start) + comment + result.slice(end);
             continue;
         }
+
+        // Replace %%placeholder%% tokens with the corresponding attribute values
+        const { attrs } = tags[i];
+        content = content.replace(/%%([^%]+)%%/g, (match, name) => {
+            return name in attrs ? attrs[name] : match;
+        });
 
         content = processHtml(content, projectRoot, depth + 1, logger);
         // Preserve original indentation of the <component> tag and prepend it to each line of the inserted content.
