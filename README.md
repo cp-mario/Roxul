@@ -147,6 +147,100 @@ Output (built):
 
 ---
 
+## Component Internal Files (CIF) — `<script>` and `<css>` Tags
+
+Components can optionally include **JavaScript** and **CSS** directly inside their HTML file using `<script>` and `<css>` tags. At build time, roxul extracts these blocks, saves them as separate files in the `output/cif/` folder, and automatically injects them into the `<head>` of any page that uses the component.
+
+### How It Works
+
+1. **Write your component** with optional `<script>` and `<css>` blocks:
+
+```html
+<!-- components/card.html -->
+<div class="card">
+    <h2>%%title%%</h2>
+    <p>%%content%%</p>
+</div>
+
+<css>
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 300px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</css>
+
+<script>
+document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+        console.log('Card clicked:', card.querySelector('h2').textContent);
+    });
+});
+</script>
+```
+
+2. **Use the component** in your page as usual:
+
+```html
+<component src="card" title="Hello" content="World!" />
+```
+
+3. **At build time**, roxul:
+   - Extracts the `<js>` content → saves to `output/cif/card.js`
+   - Extracts the `<css>` content → saves to `output/cif/card.css`
+   - Removes the `<js>` and `<css>` tags from the component HTML
+   - Injects `<link rel="stylesheet" href="cif/card.css">` and `<script src="cif/card.js"></script>` into the page's `<head>`
+
+### The `/cif` Folder (Component Internal Files)
+
+The `output/cif/` directory is created automatically during build and contains:
+- **`componentName.css`** — Extracted styles from `<css>` tags
+- **`componentName.js`** — Extracted scripts from `<js>` tags
+
+These files are **internal to roxul's build process** — you don't need to reference them manually. They are automatically linked in the HTML output.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Optional** | Components can be pure HTML — `<js>` and `<css>` tags are completely optional |
+| **Auto-injection** | CSS is injected as `<link rel="stylesheet">`, JS as `<script src="">` in `<head>` |
+| **Deduplication** | If a component is used multiple times on a page, its CSS/JS is only injected **once** |
+| **No flickering** | Styles and scripts are in the HTML at load time — no runtime injection |
+| **Scoped by component** | Each component gets its own `.css` and `.js` file named after the component |
+
+### Example Output
+
+**Source page:**
+```html
+<component src="card" title="First" content="Hello" />
+<component src="card" title="Second" content="World" />
+```
+
+**Built output (`output/index.html`):**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="cif/card.css" data-roxul-component="card">
+    <script src="cif/card.js" data-roxul-component="card"></script>
+</head>
+<body>
+    <div class="card"><h2>First</h2><p>Hello</p></div>
+    <div class="card"><h2>Second</h2><p>World</p></div>
+</body>
+</html>
+```
+
+Notice:
+- Only **one** `<link>` and **one** `<script>` for `card` despite two usages
+- The `data-roxul-component` attribute identifies which component the asset belongs to
+- The component HTML has no `<js>` or `<css>` tags — they were stripped at build time
+
+---
+
 ## Source Paths Reference
 
 | Prefix | Path Resolution | Use Case |

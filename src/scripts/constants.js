@@ -10,6 +10,12 @@ export const MAX_COMPONENT_DEPTH = 10;
 /** File extensions to try when resolving a component src attribute */
 export const COMPONENT_EXTENSIONS = ['', '.html', '.htm'];
 
+/** File extensions to try when resolving a JS asset src attribute */
+export const JS_ASSET_EXTENSIONS = ['', '.js', '.mjs'];
+
+/** File extensions to try when resolving a CSS asset src attribute */
+export const CSS_ASSET_EXTENSIONS = ['', '.css'];
+
 /** MIME type map for the dev server */
 export const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
